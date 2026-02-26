@@ -1,0 +1,20 @@
+# Terraform
+terraform/.terraform/
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/.terraform.lock.hcl
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# Logs
+logs/
+
+# Exam files (not part of submission)
+exam/
+
+# GCloud credentials
+*.json

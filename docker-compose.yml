@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  task1:
+    build: .
+    container_name: pttep_task1
+    command: python scripts/task1_ingestion.py
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ~/.config/gcloud:/root/.config/gcloud:ro
+    environment:
+      - GOOGLE_CLOUD_PROJECT=pttep-exam-tongthong
+      - PYTHONUNBUFFERED=1
+
+  task2:
+    build: .
+    container_name: pttep_task2
+    command: python scripts/task2_ingestion.py
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ~/.config/gcloud:/root/.config/gcloud:ro
+    environment:
+      - GOOGLE_CLOUD_PROJECT=pttep-exam-tongthong
+      - PYTHONUNBUFFERED=1
