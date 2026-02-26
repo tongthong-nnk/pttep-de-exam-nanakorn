@@ -5,3 +5,4 @@ pytz==2025.2
 openpyxl==3.1.5
 apache-airflow==2.10.4
 apache-airflow-providers-google==10.22.0
+apache-airflow-providers-docker==3.14.0

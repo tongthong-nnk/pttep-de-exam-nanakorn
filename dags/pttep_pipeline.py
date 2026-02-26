@@ -1,11 +1,8 @@
 from airflow import DAG
-from airflow.operators.python import PythonOperator
+from airflow.providers.docker.operators.docker import DockerOperator
 from airflow.utils.dates import days_ago
-from datetime import datetime, timedelta
-import sys
-import os
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts'))
+from datetime import timedelta
+from docker.types import Mount
 
 # =============================================================================
 # DEFAULT ARGS
@@ -32,30 +29,74 @@ with DAG(
     tags=['pttep', 'ingestion', 'bigquery'],
 ) as dag:
 
-    def run_task1():
-        from task1_ingestion import run_ingestion
-        run_ingestion()
-
-    def run_task2():
-        from task2_ingestion import run_ingestion
-        run_ingestion()
-
-    task1 = PythonOperator(
+    task1 = DockerOperator(
         task_id='task1_csv_to_bigquery',
-        python_callable=run_task1,
+        image='pttep-pipeline:latest',
+        command='python scripts/task1_ingestion.py',
+        docker_url='unix://var/run/docker.sock',
+        network_mode='bridge',
+        auto_remove=True,
+        environment={
+            'GOOGLE_CLOUD_PROJECT': 'pttep-exam-tongthong',
+            'PYTHONUNBUFFERED': '1',
+        },
+        mounts=[
+            Mount(
+                source='/home/tongthong_nnk/PTTEP_DE_EXAM/data',
+                target='/app/data',
+                type='bind',
+            ),
+            Mount(
+                source='/home/tongthong_nnk/PTTEP_DE_EXAM/logs',
+                target='/app/logs',
+                type='bind',
+            ),
+            Mount(
+                source='/home/tongthong_nnk/.config/gcloud',
+                target='/root/.config/gcloud',
+                type='bind',
+            ),
+        ],
         doc_md="""
-        ## Task 1: CSV Ingestion
+        ## Task 1: CSV Ingestion (DockerOperator)
+        - Image: pttep-pipeline:latest
         - Source: de-exam-task1_data_storytelling.csv
         - Destination: exam_nanakorn.task1_data_result
         - Transformations: boolean mapping, timestamp parsing, decimal handling, null handling
         """,
     )
 
-    task2 = PythonOperator(
+    task2 = DockerOperator(
         task_id='task2_excel_to_bigquery',
-        python_callable=run_task2,
+        image='pttep-pipeline:latest',
+        command='python scripts/task2_ingestion.py',
+        docker_url='unix://var/run/docker.sock',
+        network_mode='bridge',
+        auto_remove=True,
+        environment={
+            'GOOGLE_CLOUD_PROJECT': 'pttep-exam-tongthong',
+            'PYTHONUNBUFFERED': '1',
+        },
+        mounts=[
+            Mount(
+                source='/home/tongthong_nnk/PTTEP_DE_EXAM/data',
+                target='/app/data',
+                type='bind',
+            ),
+            Mount(
+                source='/home/tongthong_nnk/PTTEP_DE_EXAM/logs',
+                target='/app/logs',
+                type='bind',
+            ),
+            Mount(
+                source='/home/tongthong_nnk/.config/gcloud',
+                target='/root/.config/gcloud',
+                type='bind',
+            ),
+        ],
         doc_md="""
-        ## Task 2: Excel Ingestion
+        ## Task 2: Excel Ingestion (DockerOperator)
+        - Image: pttep-pipeline:latest
         - Source: DE_Exam_raw_data_20250101.xlsx
         - Destination: exam_nanakorn.task2_data_result
         - Transformations: unpivot wide->long, extract parameter from filename, remove AVG rows
