@@ -88,13 +88,29 @@ def transform_boolean(val):
         return True
     return False
 
+KNOWN_HOLIDAYS = [
+    'Makha Bucha', 'Labour Day', 'Songkran Festival',
+    'King Bhumibol Memorial Day', "King's Birthday",
+    'Chulalongkorn Day', 'Royal Ploughing Ceremony',
+    'Constitution Day', 'New Year', 'Christmas',
+    'Coronation Day', 'Queen Suthida Birthday',
+]
+
 def transform_holiday(val):
     if pd.isna(val):
         return None
     val = str(val).strip()
     if val in ('', '-', 'nan'):
         return None
-    return val
+    # ถ้าสั้นพอ (ไม่ใช่ประโยค) return ตรงๆ
+    if len(val.split()) <= 4:
+        return val
+    # ถ้าเป็นประโยค ให้ extract holiday name ออกมา
+    val_lower = val.lower()
+    for holiday in KNOWN_HOLIDAYS:
+        if holiday.lower() in val_lower:
+            return holiday
+    return None
 
 # =============================================================================
 # DATA VALIDATION
