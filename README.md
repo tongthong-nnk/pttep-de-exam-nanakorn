@@ -28,7 +28,8 @@ PTTEP_DE_EXAM/
 ├── terraform/
 │   └── main.tf                  # Infrastructure as Code (GCS + BigQuery)
 ├── tests/
-│   └── test_task1_transforms.py # Unit tests for all transform functions
+│   ├── test_task1_transforms.py # Unit tests for Task 1 transform functions
+│   └── test_task2_transforms.py # Unit tests for Task 2 transform functions
 ├── .env.example                 # Environment variable template
 ├── .pylintrc                    # Pylint configuration
 ├── Dockerfile                   # Container image for pipeline
@@ -136,12 +137,14 @@ pip install pytest
 python3 -m pytest tests/ -v
 ```
 
-Covers 24 test cases across all transform functions:
+Covers 32 test cases across all transform functions:
 - `transform_integer` — comma handling, invalid values
 - `transform_decimal` — large numbers, scientific notation, invalid symbols
 - `transform_timestamp` — 4 date formats, edge cases
 - `transform_boolean` — all true/false variants
 - `transform_holiday` — sentence extraction, whitespace, unknown values
+- `extract_parameter_from_filename` — date parsing from filename, edge cases
+- `build_month_groups` — column index calculation, year rollover
 
 ---
 
