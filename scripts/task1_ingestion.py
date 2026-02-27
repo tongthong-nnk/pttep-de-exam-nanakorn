@@ -3,21 +3,13 @@ from google.cloud import bigquery
 from datetime import datetime
 import pytz
 import re
-import logging
-import sys
+
+from utils import setup_logging, load_to_bigquery
 
 # =============================================================================
 # LOGGING SETUP
 # =============================================================================
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s [%(levelname)s] %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('../logs/task1_ingestion.log'),
-    ]
-)
-logger = logging.getLogger(__name__)
+logger = setup_logging('../logs/task1_ingestion.log')
 
 # =============================================================================
 # GLOBAL CONFIGURATION
@@ -26,6 +18,17 @@ PROJECT_ID  = "pttep-exam-tongthong"
 DATASET_ID  = "exam_nanakorn"
 TABLE_ID    = "task1_data_result"
 INPUT_FILE  = "../data/de-exam-task1_data_storytelling.csv"
+
+# =============================================================================
+# KNOWN HOLIDAYS
+# =============================================================================
+KNOWN_HOLIDAYS = [
+    'Makha Bucha', 'Labour Day', 'Songkran Festival',
+    'King Bhumibol Memorial Day', "King's Birthday",
+    'Chulalongkorn Day', 'Royal Ploughing Ceremony',
+    'Constitution Day', 'New Year', 'Christmas',
+    'Coronation Day', 'Queen Suthida Birthday',
+]
 
 # =============================================================================
 # TRANSFORMATION FUNCTIONS
@@ -88,14 +91,6 @@ def transform_boolean(val):
         return True
     return False
 
-KNOWN_HOLIDAYS = [
-    'Makha Bucha', 'Labour Day', 'Songkran Festival',
-    'King Bhumibol Memorial Day', "King's Birthday",
-    'Chulalongkorn Day', 'Royal Ploughing Ceremony',
-    'Constitution Day', 'New Year', 'Christmas',
-    'Coronation Day', 'Queen Suthida Birthday',
-]
-
 def transform_holiday(val):
     if pd.isna(val):
         return None
@@ -120,16 +115,13 @@ def validate_dataframe(df):
     logger.info("--- Data Quality Report ---")
     passed = True
 
-    # Check row count
     logger.info(f"  Total rows       : {len(df)}")
 
-    # Check each column null %
     for col in ['integer_col', 'decimal_col', 'timestamp_col', 'boolean_col', 'holiday_name']:
         nulls = df[col].isna().sum()
         pct   = nulls / len(df) * 100
         logger.info(f"  {col:<20}: {nulls:>3} nulls ({pct:.1f}%)")
 
-    # Validate boolean only has True/False/None
     invalid_bool = df['boolean_col'].dropna().apply(
         lambda x: x not in (True, False)
     ).sum()
@@ -139,14 +131,12 @@ def validate_dataframe(df):
     else:
         logger.info(f"  boolean_col values: True={df['boolean_col'].eq(True).sum()}, False={df['boolean_col'].eq(False).sum()}, NULL={df['boolean_col'].isna().sum()}")
 
-    # Validate row_id is unique
     if df['row_id'].nunique() != len(df):
         logger.error("  row_id is NOT unique!")
         passed = False
     else:
         logger.info(f"  row_id           : unique ✓")
 
-    # Validate audit columns exist
     for col in ['business_datetime', 'created_datetime']:
         if col not in df.columns:
             logger.error(f"  Missing column: {col}")
@@ -179,10 +169,8 @@ def run_ingestion():
         logger.error(f"Error reading CSV: {e}")
         return
 
-    # row_id
     df.insert(0, 'row_id', range(1, len(df) + 1))
 
-    # Transformations
     logger.info("Applying transformations...")
     df['integer_col']   = df['integer_col'].apply(transform_integer)
     df['decimal_col']   = df['decimal_col'].apply(transform_decimal)
@@ -190,43 +178,35 @@ def run_ingestion():
     df['boolean_col']   = df['boolean_col'].apply(transform_boolean)
     df['holiday_name']  = df['holiday_name'].apply(transform_holiday)
 
-    # Audit columns
     bkk_tz = pytz.timezone('Asia/Bangkok')
     utc_tz  = pytz.utc
     now_utc = datetime.now(utc_tz)
     df['business_datetime'] = now_utc.astimezone(bkk_tz)
     df['created_datetime']  = now_utc
 
-    # Cast types
     df['integer_col'] = pd.array(df['integer_col'], dtype=pd.Int64Dtype())
     df['decimal_col'] = pd.to_numeric(df['decimal_col'], errors='coerce')
 
     logger.info("Transformations complete.")
 
-    # Validate
     if not validate_dataframe(df):
         logger.error("Aborting due to validation failure.")
         return
 
-    # Load to BigQuery
-    job_config = bigquery.LoadJobConfig(
-        write_disposition="WRITE_TRUNCATE",
-        schema=[
-            bigquery.SchemaField("row_id",           "INTEGER",   mode="NULLABLE"),
-            bigquery.SchemaField("integer_col",      "INTEGER",   mode="NULLABLE"),
-            bigquery.SchemaField("decimal_col",      "FLOAT64",   mode="NULLABLE"),
-            bigquery.SchemaField("timestamp_col",    "TIMESTAMP", mode="NULLABLE"),
-            bigquery.SchemaField("boolean_col",      "BOOL",      mode="NULLABLE"),
-            bigquery.SchemaField("holiday_name",     "STRING",    mode="NULLABLE"),
-            bigquery.SchemaField("business_datetime","TIMESTAMP", mode="NULLABLE"),
-            bigquery.SchemaField("created_datetime", "TIMESTAMP", mode="NULLABLE"),
-        ]
-    )
+    schema = [
+        bigquery.SchemaField("row_id",           "INTEGER",   mode="NULLABLE"),
+        bigquery.SchemaField("integer_col",      "INTEGER",   mode="NULLABLE"),
+        bigquery.SchemaField("decimal_col",      "FLOAT64",   mode="NULLABLE"),
+        bigquery.SchemaField("timestamp_col",    "TIMESTAMP", mode="NULLABLE"),
+        bigquery.SchemaField("boolean_col",      "BOOL",      mode="NULLABLE"),
+        bigquery.SchemaField("holiday_name",     "STRING",    mode="NULLABLE"),
+        bigquery.SchemaField("business_datetime","TIMESTAMP", mode="NULLABLE"),
+        bigquery.SchemaField("created_datetime", "TIMESTAMP", mode="NULLABLE"),
+    ]
 
     logger.info(f"Loading into BigQuery: {destination_table}")
     try:
-        load_job = client.load_table_from_dataframe(df, destination_table, job_config=job_config)
-        load_job.result()
+        load_to_bigquery(client, df, destination_table, schema)
         logger.info(f"SUCCESS: {len(df)} rows loaded into {destination_table}")
     except Exception as e:
         logger.error(f"BigQuery Load Error: {e}")

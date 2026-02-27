@@ -5,21 +5,13 @@ from datetime import datetime, date
 import pytz
 import re
 import os
-import logging
-import sys
+
+from utils import setup_logging, load_to_bigquery
 
 # =============================================================================
 # LOGGING SETUP
 # =============================================================================
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s [%(levelname)s] %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('../logs/task2_ingestion.log'),
-    ]
-)
-logger = logging.getLogger(__name__)
+logger = setup_logging('../logs/task2_ingestion.log')
 
 # =============================================================================
 # GLOBAL CONFIGURATION
@@ -55,7 +47,6 @@ def validate_dataframe(df):
     logger.info(f"  Assets found     : {sorted(df['asset'].unique())}")
     logger.info(f"  Parameter        : {df['parameter'].unique()}")
 
-    # Check expected assets
     actual_assets = set(df['asset'].unique())
     missing = EXPECTED_ASSETS - actual_assets
     if missing:
@@ -64,7 +55,6 @@ def validate_dataframe(df):
     else:
         logger.info(f"  All expected assets present ✓")
 
-    # Check no nulls in key columns
     for col in ['date', 'asset', 'nomination', 'load_ts']:
         nulls = df[col].isna().sum()
         if nulls > 0:
@@ -73,7 +63,6 @@ def validate_dataframe(df):
         else:
             logger.info(f"  {col:<20}: no nulls ✓")
 
-    # Check nomination is numeric
     non_numeric = df['nomination'].apply(
         lambda x: not isinstance(x, (int, float))
     ).sum()
@@ -182,21 +171,17 @@ def run_ingestion():
         logger.error("Aborting due to validation failure.")
         return
 
-    job_config = bigquery.LoadJobConfig(
-        write_disposition="WRITE_TRUNCATE",
-        schema=[
-            bigquery.SchemaField("date",       "DATE",      mode="NULLABLE"),
-            bigquery.SchemaField("parameter",  "DATE",      mode="NULLABLE"),
-            bigquery.SchemaField("asset",      "STRING",    mode="NULLABLE"),
-            bigquery.SchemaField("nomination", "FLOAT64",   mode="NULLABLE"),
-            bigquery.SchemaField("load_ts",    "TIMESTAMP", mode="NULLABLE"),
-        ]
-    )
+    schema = [
+        bigquery.SchemaField("date",       "DATE",      mode="NULLABLE"),
+        bigquery.SchemaField("parameter",  "DATE",      mode="NULLABLE"),
+        bigquery.SchemaField("asset",      "STRING",    mode="NULLABLE"),
+        bigquery.SchemaField("nomination", "FLOAT64",   mode="NULLABLE"),
+        bigquery.SchemaField("load_ts",    "TIMESTAMP", mode="NULLABLE"),
+    ]
 
     logger.info(f"Loading into BigQuery: {destination_table}")
     try:
-        load_job = client.load_table_from_dataframe(df, destination_table, job_config=job_config)
-        load_job.result()
+        load_to_bigquery(client, df, destination_table, schema)
         logger.info(f"SUCCESS: {len(df)} rows loaded into {destination_table}")
     except Exception as e:
         logger.error(f"BigQuery Load Error: {e}")
