@@ -1,8 +1,14 @@
-import pandas as pd
-from google.cloud import bigquery
-from datetime import datetime
-import pytz
+"""
+Task 1: CSV Ingestion Pipeline
+Reads de-exam-task1_data_storytelling.csv, applies data transformations,
+validates data quality, and loads into BigQuery table task1_data_result.
+"""
 import re
+from datetime import datetime
+
+import pandas as pd
+import pytz
+from google.cloud import bigquery
 
 from utils import setup_logging, load_to_bigquery
 
@@ -35,6 +41,7 @@ KNOWN_HOLIDAYS = [
 # =============================================================================
 
 def transform_integer(val):
+    """Convert value to integer. Remove commas. Return None for invalid values."""
     if pd.isna(val):
         return None
     val = str(val).strip()
@@ -47,6 +54,7 @@ def transform_integer(val):
         return None
 
 def transform_decimal(val):
+    """Convert value to float. Return None for invalid values like '-' or '#'."""
     if pd.isna(val):
         return None
     val = str(val).strip()
@@ -58,6 +66,7 @@ def transform_decimal(val):
         return None
 
 def transform_timestamp(val):
+    """Parse timestamp from multiple formats. Return None for unparseable values."""
     if pd.isna(val):
         return None
     val = str(val).strip()
@@ -82,6 +91,7 @@ def transform_timestamp(val):
     return None
 
 def transform_boolean(val):
+    """Map value to boolean. true/yes/ok/1=True, '-'=None, others=False."""
     if pd.isna(val):
         return None
     val = str(val).strip().lower()
@@ -92,15 +102,14 @@ def transform_boolean(val):
     return False
 
 def transform_holiday(val):
+    """Extract holiday name from value or sentence. Return None for invalid values."""
     if pd.isna(val):
         return None
     val = str(val).strip()
     if val in ('', '-', 'nan'):
         return None
-    # ถ้าสั้นพอ (ไม่ใช่ประโยค) return ตรงๆ
     if len(val.split()) <= 4:
         return val
-    # ถ้าเป็นประโยค ให้ extract holiday name ออกมา
     val_lower = val.lower()
     for holiday in KNOWN_HOLIDAYS:
         if holiday.lower() in val_lower:
@@ -112,37 +121,43 @@ def transform_holiday(val):
 # =============================================================================
 
 def validate_dataframe(df):
+    """Validate transformed dataframe and log data quality report."""
     logger.info("--- Data Quality Report ---")
     passed = True
 
-    logger.info(f"  Total rows       : {len(df)}")
+    logger.info("  Total rows       : %d", len(df))
 
     for col in ['integer_col', 'decimal_col', 'timestamp_col', 'boolean_col', 'holiday_name']:
         nulls = df[col].isna().sum()
         pct   = nulls / len(df) * 100
-        logger.info(f"  {col:<20}: {nulls:>3} nulls ({pct:.1f}%)")
+        logger.info("  %-20s: %3d nulls (%.1f%%)", col, nulls, pct)
 
     invalid_bool = df['boolean_col'].dropna().apply(
         lambda x: x not in (True, False)
     ).sum()
     if invalid_bool > 0:
-        logger.error(f"  boolean_col has {invalid_bool} invalid values!")
+        logger.error("  boolean_col has %d invalid values!", invalid_bool)
         passed = False
     else:
-        logger.info(f"  boolean_col values: True={df['boolean_col'].eq(True).sum()}, False={df['boolean_col'].eq(False).sum()}, NULL={df['boolean_col'].isna().sum()}")
+        logger.info(
+            "  boolean_col values: True=%d, False=%d, NULL=%d",
+            df['boolean_col'].eq(True).sum(),
+            df['boolean_col'].eq(False).sum(),
+            df['boolean_col'].isna().sum()
+        )
 
     if df['row_id'].nunique() != len(df):
         logger.error("  row_id is NOT unique!")
         passed = False
     else:
-        logger.info(f"  row_id           : unique ✓")
+        logger.info("  row_id           : unique ✓")
 
     for col in ['business_datetime', 'created_datetime']:
         if col not in df.columns:
-            logger.error(f"  Missing column: {col}")
+            logger.error("  Missing column: %s", col)
             passed = False
         else:
-            logger.info(f"  {col:<20}: present ✓")
+            logger.info("  %-20s: present ✓", col)
 
     if passed:
         logger.info("  Validation PASSED ✓")
@@ -156,17 +171,18 @@ def validate_dataframe(df):
 # =============================================================================
 
 def run_ingestion():
+    """Main ingestion function: read CSV, transform, validate, load to BigQuery."""
     client = bigquery.Client(project=PROJECT_ID)
     destination_table = f"{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}"
 
-    logger.info(f"Starting Task 1 ingestion: {INPUT_FILE}")
+    logger.info("Starting Task 1 ingestion: %s", INPUT_FILE)
 
     try:
         df = pd.read_csv(INPUT_FILE, dtype=str)
         df.columns = df.columns.str.strip().str.lower()
-        logger.info(f"Loaded {len(df)} rows. Columns: {list(df.columns)}")
-    except Exception as e:
-        logger.error(f"Error reading CSV: {e}")
+        logger.info("Loaded %d rows. Columns: %s", len(df), list(df.columns))
+    except OSError as e:
+        logger.error("Error reading CSV: %s", e)
         return
 
     df.insert(0, 'row_id', range(1, len(df) + 1))
@@ -204,12 +220,12 @@ def run_ingestion():
         bigquery.SchemaField("created_datetime", "TIMESTAMP", mode="NULLABLE"),
     ]
 
-    logger.info(f"Loading into BigQuery: {destination_table}")
+    logger.info("Loading into BigQuery: %s", destination_table)
     try:
         load_to_bigquery(client, df, destination_table, schema)
-        logger.info(f"SUCCESS: {len(df)} rows loaded into {destination_table}")
-    except Exception as e:
-        logger.error(f"BigQuery Load Error: {e}")
+        logger.info("SUCCESS: %d rows loaded into %s", len(df), destination_table)
+    except OSError as e:
+        logger.error("BigQuery Load Error: %s", e)
 
 if __name__ == "__main__":
     run_ingestion()

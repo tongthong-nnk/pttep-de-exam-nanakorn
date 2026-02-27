@@ -1,9 +1,12 @@
+"""Shared utilities for PTTEP data ingestion pipeline."""
 import logging
 import sys
+
 from google.cloud import bigquery
 
 
 def setup_logging(log_file):
+    """Configure logging to stdout and file. Return logger instance."""
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s [%(levelname)s] %(message)s',
@@ -16,6 +19,7 @@ def setup_logging(log_file):
 
 
 def load_to_bigquery(client, df, destination_table, schema):
+    """Load DataFrame to BigQuery with WRITE_TRUNCATE disposition."""
     job_config = bigquery.LoadJobConfig(
         write_disposition="WRITE_TRUNCATE",
         schema=schema
