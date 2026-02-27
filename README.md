@@ -1,5 +1,5 @@
 # PTTEP Data Engineering Exam
-**Candidate:** Nanakorn Tongthong  
+**Candidate:** Tongthong Nanakorn  
 **Dataset:** exam_nanakorn  
 **GCP Project:** pttep-exam-tongthong  
 **Pylint Score:** 9.97/10
