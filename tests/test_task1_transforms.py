@@ -5,7 +5,7 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts'))
 
-from task1_ingestion import (
+from task1_ingestion import (  # pylint: disable=wrong-import-position
     transform_integer,
     transform_decimal,
     transform_timestamp,
