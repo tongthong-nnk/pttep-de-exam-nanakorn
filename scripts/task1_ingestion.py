@@ -10,7 +10,7 @@ import pandas as pd
 import pytz
 from google.cloud import bigquery
 
-from utils import setup_logging, load_to_bigquery
+from utils import setup_logging, load_to_bigquery, get_config
 
 # =============================================================================
 # LOGGING SETUP
@@ -20,10 +20,10 @@ logger = setup_logging('../logs/task1_ingestion.log')
 # =============================================================================
 # GLOBAL CONFIGURATION
 # =============================================================================
-PROJECT_ID  = "pttep-exam-tongthong"
-DATASET_ID  = "exam_nanakorn"
-TABLE_ID    = "task1_data_result"
-INPUT_FILE  = "../data/de-exam-task1_data_storytelling.csv"
+PROJECT_ID  = get_config("PROJECT_ID", "pttep-exam-tongthong")
+DATASET_ID  = get_config("DATASET_ID", "exam_nanakorn")
+TABLE_ID    = get_config("TABLE_ID_TASK1", "task1_data_result")
+INPUT_FILE  = get_config("INPUT_FILE_TASK1", "../data/de-exam-task1_data_storytelling.csv")
 
 # =============================================================================
 # KNOWN HOLIDAYS
@@ -204,6 +204,10 @@ def run_ingestion():
     df['decimal_col'] = pd.to_numeric(df['decimal_col'], errors='coerce')
 
     logger.info("Transformations complete.")
+
+    # Data Profiling
+    from utils import profile_dataframe
+    profile_dataframe(df, logger)
 
     if not validate_dataframe(df):
         logger.error("Aborting due to validation failure.")

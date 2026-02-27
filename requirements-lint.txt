@@ -6,3 +6,5 @@ pytz
 openpyxl
 apache-airflow
 apache-airflow-providers-docker
+python-dotenv
+pytest

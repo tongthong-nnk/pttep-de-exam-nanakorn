@@ -12,7 +12,7 @@ import pandas as pd
 import pytz
 from google.cloud import bigquery
 
-from utils import setup_logging, load_to_bigquery
+from utils import setup_logging, load_to_bigquery, get_config
 
 # =============================================================================
 # LOGGING SETUP
@@ -22,10 +22,10 @@ logger = setup_logging('../logs/task2_ingestion.log')
 # =============================================================================
 # GLOBAL CONFIGURATION
 # =============================================================================
-PROJECT_ID  = "pttep-exam-tongthong"
-DATASET_ID  = "exam_nanakorn"
-TABLE_ID    = "task2_data_result"
-INPUT_FILE  = "../data/DE_Exam_raw_data_20250101.xlsx"
+PROJECT_ID  = get_config("PROJECT_ID", "pttep-exam-tongthong")
+DATASET_ID  = get_config("DATASET_ID", "exam_nanakorn")
+TABLE_ID    = get_config("TABLE_ID_TASK2", "task2_data_result")
+INPUT_FILE  = get_config("INPUT_FILE_TASK2", "../data/DE_Exam_raw_data_20250101.xlsx")
 
 EXPECTED_ASSETS = {'Prod_Well_A', 'Pressure_Tx', 'Gas_Flow', 'Temp_Sensor_1', 'Inject_Pump_B'}
 
@@ -183,6 +183,8 @@ def run_ingestion():
 
     df = pd.DataFrame(records)
     logger.info("Extracted %d rows", len(df))
+    from utils import profile_dataframe
+    profile_dataframe(df, logger)
 
     if not validate_dataframe(df):
         logger.error("Aborting due to validation failure.")
