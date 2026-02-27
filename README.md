@@ -11,7 +11,8 @@
 PTTEP_DE_EXAM/
 ├── .github/
 │   └── workflows/
-│       └── pylint.yml           # CI/CD: Pylint + Pytest on every push
+│       ├── pylint.yml           # CI/CD: Pylint + Pytest on every push
+│       └── security.yml         # CI/CD: Bandit security scan on every push
 ├── dags/
 │   └── pttep_pipeline.py        # Airflow DAG with DockerOperator
 ├── data/
@@ -220,40 +221,53 @@ Runs on Python 3.11 and 3.12.
 
 ### Task 1
 ```
-2026-02-27 07:57:59 [INFO] Starting Task 1 ingestion: ../data/de-exam-task1_data_storytelling.csv
-2026-02-27 07:57:59 [INFO] Loaded 105 rows. Columns: ['integer_col', 'decimal_col', 'timestamp_col', 'boolean_col', 'holiday_name']
-2026-02-27 07:57:59 [INFO] Applying transformations...
-2026-02-27 07:57:59 [INFO] Transformations complete.
-2026-02-27 07:57:59 [INFO] --- Data Profiling Report ---
-2026-02-27 07:57:59 [INFO]   Shape            : 105 rows x 8 cols
-2026-02-27 07:57:59 [INFO]   integer_col      : nulls=46(43.8%) unique=48 min=1.00 max=55216.00 mean=3403.83
-2026-02-27 07:57:59 [INFO]   decimal_col      : nulls=32(30.5%) unique=54 min=456.79 max=1234567890123456730939583435068208897327104.00
-2026-02-27 07:57:59 [INFO]   boolean_col      : nulls=16(15.2%) unique=2 top={True: 48, False: 41}
-2026-02-27 07:57:59 [INFO]   holiday_name     : nulls=23(21.9%) unique=12
-2026-02-27 07:57:59 [INFO] --- Data Quality Report ---
-2026-02-27 07:57:59 [INFO]   Total rows       : 105
-2026-02-27 07:57:59 [INFO]   boolean_col values: True=48, False=41, NULL=16
-2026-02-27 07:57:59 [INFO]   row_id           : unique
-2026-02-27 07:57:59 [INFO]   Validation PASSED
-2026-02-27 07:58:02 [INFO] SUCCESS: 105 rows loaded into pttep-exam-tongthong.exam_nanakorn.task1_data_result
+2026-02-27 08:50:21 [INFO] Starting Task 1 ingestion: ../data/de-exam-task1_data_storytelling.csv
+2026-02-27 08:50:21 [INFO] Loaded 105 rows. Columns: ['integer_col', 'decimal_col', 'timestamp_col', 'boolean_col', 'holiday_name']
+2026-02-27 08:50:21 [INFO] Applying transformations...
+2026-02-27 08:50:21 [INFO] Transformations complete.
+2026-02-27 08:50:21 [INFO] --- Data Profiling Report ---
+2026-02-27 08:50:21 [INFO]   Shape            : 105 rows x 8 cols
+2026-02-27 08:50:21 [INFO]   row_id           : nulls=0(0.0%) unique=105
+2026-02-27 08:50:21 [INFO]   integer_col      : nulls=46(43.8%) unique=48 min=1.00 max=55216.00 mean=3403.83
+2026-02-27 08:50:21 [INFO]   decimal_col      : nulls=32(30.5%) unique=54 min=456.79 max=1234567890123456730939583435068208897327104.00 mean=17487603557328366474839134758238980931584.00
+2026-02-27 08:50:21 [INFO]   timestamp_col    : nulls=28(26.7%) unique=3
+2026-02-27 08:50:21 [INFO]   boolean_col      : nulls=16(15.2%) unique=2 top={True: 48, False: 41}
+2026-02-27 08:50:21 [INFO]   holiday_name     : nulls=23(21.9%) unique=12
+2026-02-27 08:50:21 [INFO]   business_datetime: nulls=0(0.0%) unique=1
+2026-02-27 08:50:21 [INFO]   created_datetime : nulls=0(0.0%) unique=1
+2026-02-27 08:50:21 [INFO] --- Data Quality Report ---
+2026-02-27 08:50:21 [INFO]   Total rows       : 105
+2026-02-27 08:50:21 [INFO]   boolean_col values: True=48, False=41, NULL=16
+2026-02-27 08:50:21 [INFO]   row_id           : unique
+2026-02-27 08:50:21 [INFO]   Validation PASSED
+2026-02-27 08:50:21 [INFO] Loading into BigQuery: pttep-exam-tongthong.exam_nanakorn.task1_data_result
+2026-02-27 08:50:24 [INFO] SUCCESS: 105 rows loaded into pttep-exam-tongthong.exam_nanakorn.task1_data_result
 ```
 
 ### Task 2
 ```
-2026-02-27 07:58:04 [INFO] Starting Task 2 ingestion: ../data/DE_Exam_raw_data_20250101.xlsx
-2026-02-27 07:58:04 [INFO]   Group 1: col_start=1, month=2025-01-01
-2026-02-27 07:58:04 [INFO]   Group 2: col_start=7, month=2025-02-01
-2026-02-27 07:58:04 [INFO]   Group 3: col_start=13, month=2025-03-01
-2026-02-27 07:58:04 [INFO]   Group 4: col_start=19, month=2025-04-01
-2026-02-27 07:58:04 [INFO] Parameter extracted from filename: 2025-01-01
-2026-02-27 07:58:04 [INFO] Extracted 600 rows
-2026-02-27 07:58:04 [INFO] --- Data Profiling Report ---
-2026-02-27 07:58:04 [INFO]   Shape            : 600 rows x 5 cols
-2026-02-27 07:58:04 [INFO]   nomination       : nulls=0(0.0%) unique=527 min=0.00 max=999.00 mean=349.45
-2026-02-27 07:58:04 [INFO] --- Data Quality Report ---
-2026-02-27 07:58:04 [INFO]   All expected assets present
-2026-02-27 07:58:04 [INFO]   Validation PASSED
-2026-02-27 07:58:09 [INFO] SUCCESS: 600 rows loaded into pttep-exam-tongthong.exam_nanakorn.task2_data_result
+2026-02-27 09:22:29 [INFO] Starting Task 2 ingestion: ../data/DE_Exam_raw_data_20250101.xlsx
+2026-02-27 09:22:29 [INFO]   Group 1: col_start=1, month=2025-01-01
+2026-02-27 09:22:29 [INFO]   Group 2: col_start=7, month=2025-02-01
+2026-02-27 09:22:29 [INFO]   Group 3: col_start=13, month=2025-03-01
+2026-02-27 09:22:29 [INFO]   Group 4: col_start=19, month=2025-04-01
+2026-02-27 09:22:29 [INFO] Parameter extracted from filename: 2025-01-01
+2026-02-27 09:22:29 [INFO] Extracted 600 rows
+2026-02-27 09:22:29 [INFO] --- Data Profiling Report ---
+2026-02-27 09:22:29 [INFO]   Shape            : 600 rows x 5 cols
+2026-02-27 09:22:29 [INFO]   date             : nulls=0(0.0%) unique=120
+2026-02-27 09:22:29 [INFO]   parameter        : nulls=0(0.0%) unique=1
+2026-02-27 09:22:29 [INFO]   asset            : nulls=0(0.0%) unique=5
+2026-02-27 09:22:29 [INFO]   nomination       : nulls=0(0.0%) unique=431 min=0.00 max=995.00 mean=224.89
+2026-02-27 09:22:29 [INFO]   load_ts          : nulls=0(0.0%) unique=1
+2026-02-27 09:22:29 [INFO] --- Data Quality Report ---
+2026-02-27 09:22:29 [INFO]   Total rows       : 600
+2026-02-27 09:22:29 [INFO]   Date range       : 2025-01-01 to 2025-04-30
+2026-02-27 09:22:29 [INFO]   Assets found     : ['Gas_Flow', 'Inject_Pump_B', 'Pressure_Tx', 'Prod_Well_A', 'Temp_Sensor_1']
+2026-02-27 09:22:29 [INFO]   All expected assets present
+2026-02-27 09:22:29 [INFO]   Validation PASSED
+2026-02-27 09:22:29 [INFO] Loading into BigQuery: pttep-exam-tongthong.exam_nanakorn.task2_data_result
+2026-02-27 09:22:32 [INFO] SUCCESS: 600 rows loaded into pttep-exam-tongthong.exam_nanakorn.task2_data_result
 ```
 
 ---
@@ -267,19 +281,23 @@ If deploying this pipeline in a real production environment, the following impro
 - Use **Workload Identity Federation** instead of Service Account key files
 - Store Terraform state in a **GCS backend** to enable team collaboration
 - Enable **BigQuery column-level security** for sensitive data fields
+- Separate environments using distinct `PROJECT_ID` and `DATASET_ID` per environment (dev/staging/prod)
 
 **Pipeline Reliability**
+- Read input files from **GCS bucket** instead of local paths, enabling cloud-native execution and decoupling storage from compute
+- Replace `WRITE_TRUNCATE` with **incremental loading** using `WRITE_APPEND` with deduplication for large-scale datasets where full reload is not feasible
+- Replace hardcoded `KNOWN_HOLIDAYS` list with a **database-managed holiday table** to support annual updates without code changes
+- Replace hardcoded Excel row range `all_rows[13:44]` with **dynamic structure detection** to handle format changes gracefully
+- Replace hardcoded `EXPECTED_ASSETS` with a **metadata configuration table** in BigQuery to support asset additions without code changes
 - Add a **Dead Letter Queue** for rows that fail validation instead of aborting the entire batch
 - Use **BigQuery table partitioning** on `created_datetime` for improved query performance
-- Add **data lineage tracking** using OpenLineage or Google Dataplex
-- Switch to **incremental loading** instead of WRITE_TRUNCATE for large-scale datasets
 
 **Observability**
 - Send pipeline metrics to **Cloud Monitoring** such as row count, null rate, and pipeline duration
 - Configure **alerting** when validation fails or pipeline duration exceeds SLA
-- Define **data quality SLAs** such as maximum acceptable null rate per column
 
 **Scalability**
 - Use **Dataflow** instead of pandas for GB+ scale data processing
 - Use **Cloud Composer** (managed Airflow) instead of self-hosted
+- Use **versioned Docker image tags** (e.g. `pttep-pipeline:1.0.0`) instead of `latest` to ensure reproducible deployments
 - Use **Kubernetes on GKE** instead of local Docker for container orchestration
