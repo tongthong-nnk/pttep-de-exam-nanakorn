@@ -203,9 +203,13 @@ All GCP resources defined as code ensuring reproducible environment setup across
 
 ## CI/CD Pipeline
 
-Every push to `main` triggers GitHub Actions:
+Every push to `main` triggers GitHub Actions (2 parallel workflows):
 ```
+Workflow 1 (Pylint & Pytest):
 push -> Install dependencies -> Pylint (9.97/10) -> Pytest (24 tests) -> pass
+
+Workflow 2 (Security Scan):
+push -> Bandit security scan (Medium+ severity) -> pass
 ```
 
 Runs on Python 3.11 and 3.12.
