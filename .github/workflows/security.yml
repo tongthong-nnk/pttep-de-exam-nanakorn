@@ -1,0 +1,15 @@
+name: Security Scan
+on: [push]
+jobs:
+  bandit:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.12"
+    - name: Install Bandit
+      run: pip install bandit
+    - name: Run Bandit Security Scan
+      run: bandit -r scripts/ dags/ -ll
