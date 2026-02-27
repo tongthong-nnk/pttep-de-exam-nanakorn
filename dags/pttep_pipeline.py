@@ -3,11 +3,10 @@ PTTEP Data Ingestion Pipeline DAG
 Orchestrates Task 1 (CSV) and Task 2 (Excel) ingestion into BigQuery
 using DockerOperator for containerized execution.
 """
-from datetime import timedelta
 
 from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
-from airflow.utils.dates import days_ago
+from datetime import datetime, timedelta
 from docker.types import Mount
 
 default_args = {
@@ -24,7 +23,7 @@ with DAG(
     default_args=default_args,
     description='PTTEP Data Engineering Exam - Ingestion Pipeline for Task1 and Task2',
     schedule_interval='0 8 * * *',
-    start_date=days_ago(1),
+    start_date=datetime(2026, 1, 1),
     catchup=False,
     tags=['pttep', 'ingestion', 'bigquery'],
 ) as dag:
