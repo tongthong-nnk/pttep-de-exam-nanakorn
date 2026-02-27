@@ -1,12 +1,15 @@
+"""
+PTTEP Data Ingestion Pipeline DAG
+Orchestrates Task 1 (CSV) and Task 2 (Excel) ingestion into BigQuery
+using DockerOperator for containerized execution.
+"""
+from datetime import timedelta
+
 from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
 from airflow.utils.dates import days_ago
-from datetime import timedelta
 from docker.types import Mount
 
-# =============================================================================
-# DEFAULT ARGS
-# =============================================================================
 default_args = {
     'owner': 'nanakorn',
     'depends_on_past': False,
@@ -16,14 +19,11 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
 }
 
-# =============================================================================
-# DAG DEFINITION
-# =============================================================================
 with DAG(
     dag_id='pttep_data_ingestion_pipeline',
     default_args=default_args,
     description='PTTEP Data Engineering Exam - Ingestion Pipeline for Task1 and Task2',
-    schedule_interval='0 8 * * *',  # Run daily at 8:00 AM UTC
+    schedule_interval='0 8 * * *',
     start_date=days_ago(1),
     catchup=False,
     tags=['pttep', 'ingestion', 'bigquery'],
@@ -62,7 +62,6 @@ with DAG(
         - Image: pttep-pipeline:latest
         - Source: de-exam-task1_data_storytelling.csv
         - Destination: exam_nanakorn.task1_data_result
-        - Transformations: boolean mapping, timestamp parsing, decimal handling, null handling
         """,
     )
 
@@ -99,9 +98,7 @@ with DAG(
         - Image: pttep-pipeline:latest
         - Source: DE_Exam_raw_data_20250101.xlsx
         - Destination: exam_nanakorn.task2_data_result
-        - Transformations: unpivot wide->long, extract parameter from filename, remove AVG rows
         """,
     )
 
-    # Task 1 runs first, then Task 2
-    task1 >> task2
+    task1 >> task2  # pylint: disable=pointless-statement
