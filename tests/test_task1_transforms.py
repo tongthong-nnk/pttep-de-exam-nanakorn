@@ -1,6 +1,8 @@
 """Unit tests for Task 1 transformation functions."""
-import sys
 import os
+import sys
+from datetime import datetime
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts'))
 
 from task1_ingestion import (
@@ -10,7 +12,6 @@ from task1_ingestion import (
     transform_boolean,
     transform_holiday,
 )
-from datetime import datetime
 
 
 # =============================================================================

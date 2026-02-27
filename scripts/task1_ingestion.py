@@ -10,7 +10,7 @@ import pandas as pd
 import pytz
 from google.cloud import bigquery
 
-from utils import setup_logging, load_to_bigquery, get_config
+from utils import setup_logging, load_to_bigquery, get_config, profile_dataframe
 
 # =============================================================================
 # LOGGING SETUP
@@ -206,7 +206,6 @@ def run_ingestion():
     logger.info("Transformations complete.")
 
     # Data Profiling
-    from utils import profile_dataframe
     profile_dataframe(df, logger)
 
     if not validate_dataframe(df):
