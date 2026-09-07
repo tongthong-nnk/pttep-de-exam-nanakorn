@@ -11,8 +11,8 @@
 PTTEP_DE_EXAM/
 ├── .github/
 │   └── workflows/
-│       ├── pylint.yml           # CI/CD: Pylint + Pytest on every push
-│       └── security.yml         # CI/CD: Bandit security scan on every push
+│       ├── pylint.yml           # CI: Pylint + Pytest on every push
+│       └── security.yml         # CI: Bandit security scan on every push
 ├── dags/
 │   └── pttep_pipeline.py        # Airflow DAG with DockerOperator
 ├── data/
@@ -35,7 +35,7 @@ PTTEP_DE_EXAM/
 ├── Dockerfile                   # Container image for pipeline
 ├── docker-compose.yml           # Multi-service container setup
 ├── requirements.txt             # Production dependencies (pinned versions)
-├── requirements-lint.txt        # CI/CD dependencies (unpinned for compatibility)
+├── requirements-lint.txt        # CI dependencies (unpinned for compatibility)
 └── README.md
 ```
 
@@ -137,7 +137,9 @@ pip install pytest
 python3 -m pytest tests/ -v
 ```
 
-Covers 32 test cases across all transform functions:
+The two test modules currently define 35 test functions (27 for Task 1 and 8 for Task 2). Run the command above for the current result; this count is not a claim that the tests have passed in every environment.
+
+Coverage includes:
 - `transform_integer` — comma handling, invalid values
 - `transform_decimal` — large numbers, scientific notation, invalid symbols
 - `transform_timestamp` — 4 date formats, edge cases
@@ -183,10 +185,10 @@ Covers 32 test cases across all transform functions:
 ## Key Design Decisions
 
 **FLOAT64 over NUMERIC for decimal_col**  
-Source data contains values up to 42 digits which exceeds BigQuery NUMERIC precision (29 digits). FLOAT64 handles these values correctly.
+Source data contains very large decimal values. This implementation converts them to FLOAT64, which supports a wide magnitude range but uses approximate floating-point representation and can lose significant digits. It does not preserve exact 42-digit values. For exact-value requirements, validate the source precision and scale before choosing an appropriate decimal type or retaining the original value as STRING.
 
 **Idempotent Loading with WRITE_TRUNCATE**  
-Both pipelines use `WRITE_TRUNCATE` ensuring re-runs produce consistent results without duplicates. Safe to run multiple times.
+Both pipelines use `WRITE_TRUNCATE` to replace the destination table on each successful load. Re-running the same source avoids duplicate accumulation, but ingestion timestamps change and existing table contents are overwritten. This is a full-refresh strategy, not an incremental history-preserving load.
 
 **Validation Gates before Load**  
 Each script validates data quality after transformation and aborts if validation fails, preventing corrupt data from reaching BigQuery.
@@ -198,25 +200,25 @@ Common functions (logging setup, BigQuery loader, config reader, data profiler) 
 All configuration loaded from `.env` file. Allows deployment to different environments without code changes.
 
 **DockerOperator in Airflow**  
-Each task runs in its own container via DockerOperator, providing isolation, reproducibility, and Kubernetes-style execution.
+Each task runs in its own container via DockerOperator, providing task isolation and containerized execution. This setup uses Docker, not Kubernetes.
 
 **Terraform for Infrastructure**  
 All GCP resources defined as code ensuring reproducible environment setup across teams.
 
 ---
 
-## CI/CD Pipeline
+## Continuous Integration (CI)
 
-Every push to `main` triggers GitHub Actions (2 parallel workflows):
+GitHub Actions workflows run linting, unit tests, and security checks on push. These are CI checks; no automatic deployment step is included in the workflows described here:
 ```
 Workflow 1 (Pylint & Pytest):
-push -> Install dependencies -> Pylint (9.97/10) -> Pytest (24 tests) -> pass
+push -> Install dependencies -> Pylint -> Pytest -> reported check result
 
 Workflow 2 (Security Scan):
-push -> Bandit security scan (Medium+ severity) -> pass
+push -> Bandit security scan -> reported check result
 ```
 
-Runs on Python 3.11 and 3.12.
+The Pylint & Pytest workflow runs on Python 3.11 and 3.12. Check the Actions tab for actual run results.
 
 ---
 
